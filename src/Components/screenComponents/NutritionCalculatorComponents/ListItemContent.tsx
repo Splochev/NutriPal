@@ -1,8 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React from 'react';
 import { Typography, TextField, InputAdornment } from '@mui/material';
-import { setChosenFoodsGrams, resetChosenFoodsGrams, calculateNutritionValue, deleteFood, useNutritionCalculatorStyles, MACRO_NUTRIENTS } from '../../../Services/NutritionCalculatorService'
-import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
+import { setChosenFoodsGrams, resetChosenFoodsGrams, calculateNutritionValue, useNutritionCalculatorStyles, MACRO_NUTRIENTS } from '../../../Services/NutritionCalculatorService'
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { Hook } from '../../../Services/HookService';
 import { FoodDto } from '../../../Models/FoodDto';
@@ -12,7 +11,7 @@ import { FoodInfoPopoverButton } from './FoodInfoPopoverButton';
 interface ListItemContentProps {
     foodDto: FoodDto;
     $chosenFoodsGrams: Hook<{ [key: string]: number | string }>;
-    $chosenFoods: Hook<FoodDto[]>;
+    $chosenFoods: Hook<Array<FoodDto | string>>;
     $foodList: Hook<string[]>;
 }
 
@@ -26,6 +25,7 @@ export const ListItemContent: React.FC<ListItemContentProps> = ({ foodDto, $chos
                     <Typography variant="subtitle1" className={classes.foodName}>{foodDto.name}</Typography>
                     <FoodInfoPopoverButton foodDto={foodDto} />
                     <CoreIconButton
+                        title='Reset grams'
                         icon={<RestartAltIcon />}
                         onClick={() => resetChosenFoodsGrams($chosenFoodsGrams, foodDto.name)}
                     />
@@ -56,11 +56,6 @@ export const ListItemContent: React.FC<ListItemContentProps> = ({ foodDto, $chos
                         </Typography>
                     </div>
                 ))}
-                <CoreIconButton
-                    className={classes.delete}
-                    icon={<ClearOutlinedIcon />}
-                    onClick={() => deleteFood(foodDto.name, $chosenFoodsGrams, $chosenFoods, $foodList)}
-                />
             </div>
         </>
     );

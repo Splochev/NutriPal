@@ -19,7 +19,10 @@ export const useNutritionCalculatorStyles = makeStyles()((theme) => {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'start',
-            width: theme.spacing(131.375),
+            width: theme.spacing(125),
+        },
+        draggedListItem: {
+            border: '1px solid #0074D9'
         },
         foodName: {
             textTransform: 'capitalize',
@@ -82,12 +85,64 @@ export const useNutritionCalculatorStyles = makeStyles()((theme) => {
             backgroundColor: 'white',
             boxShadow: theme.shadows[1],
             height: 'auto',
+        },
+        listItemDivider: {
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingTop: theme.spacing(1.5),
+            paddingBottom: theme.spacing(3),
+            paddingLeft: theme.spacing(0),
+            paddingRight: theme.spacing(0),
+            width: theme.spacing(125),
+            borderRadius: theme.spacing(2),
+            '& .MuiDivider-root': {
+                width: '100%',
+            }
+        },
+        toolbar: {
+            display: 'flex',
+            maxWidth: theme.spacing(125),
+            gap: theme.spacing(2),
+            '& .MuiAutocomplete-root': {
+                width: '100%',
+                '& .MuiInputBase-root': {
+                    borderRadius: theme.spacing(2)
+                }
+            }
+        },
+        addDividerButton: {
+            padding: theme.spacing(2),
+        },
+        deleteListItemBtn: {
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: theme.spacing(125),
+            '& .MuiIconButton-root': {
+                color: '#ff1744'
+            }
+        },
+        hoveredDeleteListItemBtn: {
+            '& .MuiIconButton-root': {
+                backgroundColor: '#FFD1DA',
+            }
+        },
+        showDeleteListItemBtn: {
+            '& .MuiIconButton-root': {
+                display: 'unset'
+            }
+        },
+        hideDeleteListItemBtn: {
+            '& .MuiIconButton-root': {
+                display: 'none',
+            }
         }
     };
 });
 
 export const chooseFood = async (
-    $chosenFoods: Hook<FoodDto[]>,
+    $chosenFoods: Hook<Array<FoodDto | string>>,
     $chosenFoodsGrams: Hook<{ [key: string]: number | string }>,
     $foodChoice: Hook<string>,
     $foodList: Hook<string[]>,
@@ -104,7 +159,7 @@ export const chooseFood = async (
 };
 
 export const calculateNutrients = (
-    $chosenFoods: Hook<FoodDto[]>,
+    $chosenFoods: Hook<Array<FoodDto | string>>,
     $chosenFoodsGrams: Hook<{ [key: string]: number | string }>,
     $nutrients: Hook<{ [key: string]: number }>
 ) => {
@@ -115,7 +170,7 @@ export const calculateNutrients = (
     let totalFiber = 0;
 
     $chosenFoods.value.forEach((food) => {
-        if ($chosenFoodsGrams.value[food.name]) {
+        if (typeof food === 'object' && $chosenFoodsGrams.value[food.name]) {
             const grams = Number($chosenFoodsGrams.value[food.name]);
             totalCalories += ((food.calories || 0) / food.quantity) * grams;
             totalProtein += ((food.protein || 0) / food.quantity) * grams;
@@ -167,15 +222,120 @@ export const calculateNutritionValue = (
     return '';
 };
 
-export const deleteFood = (
+export const deleteFoodFromChosenFoods = (
     foodName: string,
     $chosenFoodsGrams: Hook<{ [key: string]: number | string }>,
-    $chosenFoods: Hook<FoodDto[]>,
+    $chosenFoods: Hook<Array<FoodDto | string>>,
     $foodList: Hook<string[]>
 ) => {
     const newChosenFoodsGrams = { ...$chosenFoodsGrams.value };
     delete newChosenFoodsGrams[foodName];
     $chosenFoodsGrams.set(newChosenFoodsGrams);
-    $chosenFoods.set($chosenFoods.value.filter((food) => food.name !== foodName));
+    const filteredValues = $chosenFoods.value.filter((food) => (typeof food === 'object' && food.name !== foodName) || (typeof food === 'string' && food !== foodName));
+    $chosenFoods.set(filteredValues);
     $foodList.set([...$foodList.value, foodName]);
+    return filteredValues;
 };
+
+export const startDraggingListItem = (
+    isDragged: boolean,
+    value: FoodDto | string,
+    $showButton: Hook<boolean>,
+    $draggedStartTime: Hook<number | null>,
+    $draggedListItem: Hook<FoodDto | string>
+) => {
+    if (isDragged) {
+        if ($draggedStartTime.value === null && $showButton.value === false) {
+            $draggedStartTime.set(0);
+        }
+        $draggedListItem.set(value);
+    } else {
+        $draggedListItem.set('');
+    }
+}
+
+export const showButtonInInterval = (
+    $showButton: Hook<boolean>,
+    $draggedStartTime: Hook<number | null>,
+    $draggedListItem: Hook<FoodDto | string>
+) => {
+    if ($draggedListItem.value && ($draggedStartTime.value || $draggedStartTime.value === 0)) {
+        if ($draggedStartTime.value >= 0 && $draggedStartTime.value < 30) {
+            $draggedStartTime.set($draggedStartTime.value + 1);
+        }
+        if ($draggedStartTime.value === 30) {
+            $draggedStartTime.set(null);
+            $showButton.set(true);
+        }
+    }
+}
+
+export const deleteFood = (
+    $itemForDeletion: Hook<FoodDto | string>,
+    $chosenFoods: Hook<Array<FoodDto | string>>,
+    $chosenFoodsGrams: Hook<{ [key: string]: number | string }>,
+    $foodList: Hook<string[]>
+) => {
+    if ($itemForDeletion.value) {
+        setTimeout(() => {
+            if (typeof $itemForDeletion.value === 'object') {
+                const leftChosenFoods = deleteFoodFromChosenFoods($itemForDeletion.value.name, $chosenFoodsGrams, $chosenFoods, $foodList);
+                const hasFoodDto = leftChosenFoods.find((item) => typeof item === 'object');
+                if (!hasFoodDto) {
+                    $chosenFoods.set([]);
+                }
+            } else {
+                $chosenFoods.set($chosenFoods.value.filter((item) => item !== $itemForDeletion.value));
+            }
+            $itemForDeletion.set('');
+        }, 500);
+    }
+};
+
+export const checkIfCursorIsOnDeleteButton = (
+    event: any,
+    $cursorIsOnDeleteItem: Hook<boolean>,
+) => {
+    const deleteButtonElement = document.getElementById('deleteListItemBtn');
+    if (deleteButtonElement) {
+        const deleteButtonRect = deleteButtonElement.getBoundingClientRect();
+
+        const isMouseOverDeleteButton =
+            event.clientX >= deleteButtonRect.left &&
+            event.clientX <= deleteButtonRect.right &&
+            event.clientY >= deleteButtonRect.top &&
+            event.clientY <= deleteButtonRect.bottom;
+
+        $cursorIsOnDeleteItem.set(isMouseOverDeleteButton);
+    }
+};
+
+export const deleteFoodIfDroppedOnDeleteButton = (
+    event: any,
+    $draggedListItem: Hook<FoodDto | string>,
+    $showButton: Hook<boolean>,
+    $draggedStartTime: Hook<number | null>,
+    $itemForDeletion: Hook<FoodDto | string>,
+    onMouseUpDeleteListItem: (event: any) => void
+) => {
+    const deleteButtonElement = document.getElementById('deleteListItemBtn');
+    let itemForDeletion = '';
+    if ($draggedListItem.value && deleteButtonElement) {
+        const deleteButtonRect = deleteButtonElement.getBoundingClientRect();
+
+        const isMouseOverDeleteButton =
+            event.clientX >= deleteButtonRect.left &&
+            event.clientX <= deleteButtonRect.right &&
+            event.clientY >= deleteButtonRect.top &&
+            event.clientY <= deleteButtonRect.bottom;
+
+        if (isMouseOverDeleteButton) {
+            itemForDeletion = JSON.parse(JSON.stringify($draggedListItem.value));
+        }
+    }
+    $showButton.set(false);
+    $draggedListItem.set('');
+    setTimeout(() => $draggedStartTime.set(null), 250);
+    $itemForDeletion.set(itemForDeletion);
+    document.removeEventListener('mouseup', onMouseUpDeleteListItem);
+}
