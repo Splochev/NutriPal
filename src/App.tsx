@@ -3,7 +3,7 @@ import FoodList from './Screens/FoodList';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import NutritionCalculator from './Screens/NutritionCalculator';
 
-function App() {
+function App() {     
   return (
     <div className='App'>
       <StoreContext.Provider value={{}}>
