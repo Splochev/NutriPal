@@ -1,5 +1,5 @@
-import { FoodDto } from './FoodDto';
+import { FoodDto } from "./FoodDto";
 
 export interface FoodListDto {
-    [key: string | number]: FoodDto;
+  [key: string | number]: FoodDto;
 }
